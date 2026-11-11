@@ -28,7 +28,7 @@ export const metadata = {
     title: "AFRISCENE | African Stories, Global Experiences",
     description:
       "Discover and experience African cinema on AFRISCENE.",
-    url: "https://www.rebamovies.com",
+    url: "https://top-movies-market.vercel.app", 
     siteName: "AFRISCENE",
     type: "website",
     locale: "en_US",
