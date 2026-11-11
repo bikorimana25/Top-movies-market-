@@ -1,67 +1,83 @@
+
 "use client";
 
-import { useState } from "react";
-
-const movies = [
-  {
-    id: 1,
-    title: "The African Kingdom",
-    category: "Action",
-    year: 2025,
-    language: "English",
-    price: 1000,
-    image:
-      "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=700",
-    description:
-      "Discover an unforgettable African adventure filled with courage, mystery and destiny.",
-  },
-  {
-    id: 2,
-    title: "Love Beyond Borders",
-    category: "Romance",
-    year: 2025,
-    language: "French",
-    price: 800,
-    image:
-      "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=700",
-    description:
-      "A beautiful story about love, family and the choices that change our lives.",
-  },
-  {
-    id: 3,
-    title: "The Last Mission",
-    category: "Action",
-    year: 2024,
-    language: "English",
-    price: 1000,
-    image:
-      "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=700",
-    description:
-      "An intense cinematic journey where every decision has a consequence.",
-  },
-  {
-    id: 4,
-    title: "African Stories",
-    category: "Drama",
-    year: 2025,
-    language: "Kinyarwanda",
-    price: 500,
-    image:
-      "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=700",
-    description:
-      "Experience powerful stories inspired by African culture and everyday life.",
-  },
-];
+import { useEffect, useMemo, useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function HomePage() {
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [selectedMovie, setSelectedMovie] = useState(null);
-  const [message, setMessage] = useState("");
-  const [comment, setComment] = useState("");
-  const [comments, setComments] = useState([]);
+  const [likes, setLikes] = useState({});
+  const [comments, setComments] = useState({});
+  const [commentText, setCommentText] = useState("");
 
-  const categories = ["All", "Action", "Romance", "Drama"];
+  useEffect(() => {
+    let active = true;
+
+    async function loadMovies() {
+      const supabase = createSupabaseBrowserClient();
+
+      if (!supabase) {
+        if (active) {
+          setError("Supabase configuration is missing.");
+          setLoading(false);
+        }
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("movies")
+        .select(`
+          id,
+          title,
+          slug,
+          description,
+          category,
+          release_year,
+          language,
+          poster_url,
+          trailer_url,
+          video_path,
+          price_rwf,
+          access_type,
+          download_enabled,
+          status,
+          rights_confirmed
+        `)
+        .eq("rights_confirmed", true)
+        .order("created_at", { ascending: false });
+
+      if (!active) return;
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setMovies(data || []);
+      }
+
+      setLoading(false);
+    }
+
+    loadMovies();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const categories = useMemo(
+    () => [
+      "All",
+      ...new Set(
+        movies.map((movie) => movie.category).filter(Boolean)
+      ),
+    ],
+    [movies]
+  );
 
   const filteredMovies = movies.filter((movie) => {
     const matchesSearch = movie.title
@@ -74,182 +90,194 @@ export default function HomePage() {
     return matchesSearch && matchesCategory;
   });
 
-  function submitComment(event) {
-    event.preventDefault();
+  function isFree(movie) {
+    return String(movie.access_type).toLowerCase() === "free";
+  }
 
-    if (!comment.trim()) {
-      setMessage("Please write a message first.");
-      return;
+  async function shareMovie(movie) {
+    const url = `${window.location.origin}/movies/${movie.slug}`;
+
+    if (navigator.share) {
+      await navigator.share({
+        title: movie.title,
+        text: "Discover this movie on AFRISCENE.",
+        url,
+      });
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      alert("Movie link copied!");
     }
+  }
 
-    setComments((previous) => [
+  function addComment(movieId) {
+    if (!commentText.trim()) return;
+
+    setComments((previous) => ({
       ...previous,
-      {
-        id: Date.now(),
-        text: comment.trim(),
-      },
-    ]);
+      [movieId]: [
+        ...(previous[movieId] || []),
+        commentText.trim(),
+      ],
+    }));
 
-    setComment("");
-    setMessage("Your message has been added.");
+    setCommentText("");
   }
 
   return (
-    <main className="site">
-      <header className="navbar">
-        <a className="brand" href="#">
-          <span className="brand-icon">▶</span>
-          REBA <span>MOVIES</span>
+    <main className="afriscene">
+
+      <header className="main-header">
+        <a href="/" className="logo">
+          AFRI<span>SCENE</span>
         </a>
 
-        <nav className="nav-links">
-          <a href="#home">Home</a>
+        <nav>
+          <a href="/">Home</a>
           <a href="#movies">Movies</a>
-          <a href="#about">About</a>
-          <a href="#contact">Contact</a>
+          <a href="/account">Account</a>
+          <a href="/admin">Admin</a>
         </nav>
 
-        <a className="nav-button" href="#movies">
-          Explore Films
+        <a href="/login" className="login-button">
+          Sign In
         </a>
       </header>
 
-      <section className="hero" id="home">
+      <section className="hero">
         <div className="hero-content">
-          <span className="eyebrow">YOUR HOME FOR AFRICAN CINEMA</span>
+          <span className="hero-label">
+            AFRICAN CINEMA • GLOBAL STORIES
+          </span>
 
           <h1>
-            Great Stories.
+            Discover Stories.
             <br />
-            <span>One Destination.</span>
+            <span>Experience Africa.</span>
           </h1>
 
           <p>
-            Discover African movies, inspiring stories and unforgettable
-            entertainment — all in one place.
+            Explore African movies, discover new filmmakers
+            and enjoy stories from across the continent.
           </p>
 
-          <div className="hero-actions">
-            <a className="primary-button" href="#movies">
-              Explore Movies <span>→</span>
-            </a>
-
-            <a className="secondary-button" href="#about">
-              Discover REBA
-            </a>
-          </div>
-
-          <div className="hero-stats">
-            <div>
-              <strong>AFRICA</strong>
-              <span>Stories and culture</span>
-            </div>
-
-            <div>
-              <strong>HD READY</strong>
-              <span>Quality entertainment</span>
-            </div>
-
-            <div>
-              <strong>ANYTIME</strong>
-              <span>Watch at your pace</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="hero-art">
-          <div className="hero-poster">
-            <img
-              src={movies[0].image}
-              alt="Cinema experience"
-            />
-            <div className="poster-overlay">
-              <span>FEATURED COLLECTION</span>
-              <h2>A World of Stories</h2>
-              <p>Discover your next favourite film.</p>
-            </div>
-          </div>
-
-          <div className="floating-tag">🎬 African Cinema</div>
+          <a href="#movies" className="main-button">
+            Explore Movies →
+          </a>
         </div>
       </section>
 
-      <section className="movies-section" id="movies">
+      <section className="catalog" id="movies">
+
         <div className="section-heading">
           <div>
-            <span className="eyebrow">THE COLLECTION</span>
+            <span className="hero-label">OUR COLLECTION</span>
             <h2>Explore Movies</h2>
-            <p>Find stories that inspire, entertain and connect us.</p>
+            <p>Find your next favourite African movie.</p>
           </div>
 
-          <div className="movie-count">
-            {filteredMovies.length} films
-          </div>
+          <span className="movie-total">
+            {filteredMovies.length} Movies
+          </span>
         </div>
 
-        <div className="movie-tools">
-          <div className="search-box">
-            <span>⌕</span>
-            <input
-              type="search"
-              placeholder="Search for a movie..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
+        <input
+          className="movie-search"
+          type="search"
+          placeholder="Search movies..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
 
-          <div className="category-list">
-            {categories.map((item) => (
-              <button
-                key={item}
-                className={
-                  category === item ? "category active" : "category"
-                }
-                onClick={() => setCategory(item)}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
+        <div className="category-buttons">
+          {categories.map((item) => (
+            <button
+              key={item}
+              onClick={() => setCategory(item)}
+              className={category === item ? "active" : ""}
+            >
+              {item}
+            </button>
+          ))}
         </div>
+
+        {loading && (
+          <p className="notice">Loading movies...</p>
+        )}
+
+        {error && (
+          <p className="notice error">{error}</p>
+        )}
+
+        {!loading && !error && movies.length === 0 && (
+          <div className="empty-movies">
+            <h3>Welcome to AFRISCENE</h3>
+            <p>
+              Our movie collection is being prepared.
+              Please check again soon.
+            </p>
+          </div>
+        )}
 
         <div className="movie-grid">
           {filteredMovies.map((movie) => (
             <article className="movie-card" key={movie.id}>
-              <button
-                className="poster-button"
-                onClick={() => setSelectedMovie(movie)}
-                aria-label={`View ${movie.title}`}
-              >
-                <img src={movie.image} alt={movie.title} />
 
-                <span className="play-button">▶</span>
+              <div className="movie-poster">
+                {movie.poster_url ? (
+                  <img
+                    src={movie.poster_url}
+                    alt={movie.title}
+                  />
+                ) : (
+                  <div className="poster-placeholder">
+                    🎬
+                  </div>
+                )}
 
-                <span className="movie-category">
-                  {movie.category}
+                <span className="access-badge">
+                  {isFree(movie) ? "FREE" : "PREMIUM"}
                 </span>
-              </button>
+              </div>
 
-              <div className="movie-info">
-                <div className="movie-meta">
-                  <span>{movie.year}</span>
-                  <span>{movie.language}</span>
-                </div>
+              <div className="movie-details">
+                <span className="movie-category">
+                  {movie.category || "African Cinema"}
+                </span>
 
                 <h3>{movie.title}</h3>
 
-                <p>{movie.description}</p>
+                <p>
+                  {movie.release_year || "New Release"} ·{" "}
+                  {movie.language || "Multiple Languages"}
+                </p>
 
-                <div className="movie-bottom">
-                  <strong>
-                    {movie.price.toLocaleString()} RWF
-                  </strong>
+                <div className="movie-price">
+                  {isFree(movie)
+                    ? "Free"
+                    : `${Number(movie.price_rwf).toLocaleString()} RWF`}
+                </div>
 
+                <button
+                  className="watch-button"
+                  onClick={() => setSelectedMovie(movie)}
+                >
+                  {isFree(movie) ? "View Movie" : "View Details"}
+                </button>
+
+                <div className="movie-actions">
                   <button
-                    className="details-button"
-                    onClick={() => setSelectedMovie(movie)}
+                    onClick={() =>
+                      setLikes((previous) => ({
+                        ...previous,
+                        [movie.id]: !previous[movie.id],
+                      }))
+                    }
                   >
-                    Details →
+                    {likes[movie.id] ? "♥ Liked" : "♡ Like"}
+                  </button>
+
+                  <button onClick={() => shareMovie(movie)}>
+                    ↗ Share
                   </button>
                 </div>
               </div>
@@ -257,126 +285,93 @@ export default function HomePage() {
           ))}
         </div>
 
-        {filteredMovies.length === 0 && (
-          <div className="empty-state">
-            <span>🎬</span>
-            <h3>No movies found</h3>
-            <p>Try another title or category.</p>
-          </div>
-        )}
       </section>
-
-      <section className="about-section" id="about">
-        <div className="about-icon">▶</div>
-
-        <div>
-          <span className="eyebrow">WELCOME TO REBA MOVIES</span>
-          <h2>African stories deserve a global audience.</h2>
-          <p>
-            REBA MOVIES is designed to connect audiences with films from
-            Africa and beyond. Our goal is to make discovering stories
-            simple, enjoyable and accessible.
-          </p>
-        </div>
-      </section>
-
-      <section className="contact-section" id="contact">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">GET IN TOUCH</span>
-            <h2>Send Us a Message</h2>
-            <p>Share feedback, ask a question or suggest a film.</p>
-          </div>
-        </div>
-
-        <form className="contact-form" onSubmit={submitComment}>
-          <label htmlFor="message">Your message</label>
-
-          <textarea
-            id="message"
-            rows={4}
-            placeholder="Write your message here..."
-            value={comment}
-            onChange={(event) => setComment(event.target.value)}
-          />
-
-          <button className="primary-button" type="submit">
-            Submit Message →
-          </button>
-
-          {message && <p className="form-message">{message}</p>}
-        </form>
-
-        {comments.length > 0 && (
-          <div className="comments-list">
-            <h3>Messages in this session</h3>
-
-            {comments.map((item) => (
-              <p className="comment-item" key={item.id}>
-                {item.text}
-              </p>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <footer className="footer">
-        <a className="brand" href="#home">
-          <span className="brand-icon">▶</span>
-          REBA <span>MOVIES</span>
-        </a>
-
-        <p>Stories connect us. Cinema brings us together.</p>
-
-        <span>© {new Date().getFullYear()} REBA MOVIES</span>
-      </footer>
 
       {selectedMovie && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setSelectedMovie(null)}
-        >
-          <div
-            className="movie-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div className="movie-overlay">
+          <div className="movie-dialog">
+
             <button
-              className="modal-close"
+              className="close-dialog"
               onClick={() => setSelectedMovie(null)}
-              aria-label="Close movie details"
             >
               ×
             </button>
 
-            <img
-              className="modal-image"
-              src={selectedMovie.image}
-              alt={selectedMovie.title}
-            />
+            {selectedMovie.poster_url && (
+              <img
+                src={selectedMovie.poster_url}
+                alt={selectedMovie.title}
+              />
+            )}
 
-            <div className="modal-content">
-              <span className="eyebrow">
-                {selectedMovie.category} · {selectedMovie.year}
-              </span>
+            <h2>{selectedMovie.title}</h2>
 
-              <h2>{selectedMovie.title}</h2>
+            <p>{selectedMovie.description}</p>
 
-              <p>{selectedMovie.description}</p>
+            <p>
+              Language: {selectedMovie.language || "Not specified"}
+            </p>
 
-              <p>Language: {selectedMovie.language}</p>
+            <p>
+              {isFree(selectedMovie)
+                ? "Free movie"
+                : `Premium movie · ${Number(selectedMovie.price_rwf).toLocaleString()} RWF`}
+            </p>
 
-              <strong className="modal-price">
-                {selectedMovie.price.toLocaleString()} RWF
-              </strong>
-
-              <p className="payment-note">
-                Online viewing and payments will be connected after the
-                film library and payment system are configured.
+            {selectedMovie.download_enabled && (
+              <p>
+                Download access is subject to purchase
+                and payment verification.
               </p>
+            )}
+
+            <p className="notice">
+              Secure video playback and verified downloads
+              will be connected through the streaming and
+              payment services.
+            </p>
+
+            <div className="comment-area">
+              <h3>Comments</h3>
+
+              <textarea
+                value={commentText}
+                onChange={(event) =>
+                  setCommentText(event.target.value)
+                }
+                placeholder="Write a comment..."
+              />
+
+              <button
+                onClick={() => addComment(selectedMovie.id)}
+              >
+                Add Comment
+              </button>
+
+              {(comments[selectedMovie.id] || []).map(
+                (comment, index) => (
+                  <p key={index}>{comment}</p>
+                )
+              )}
             </div>
+
           </div>
         </div>
       )}
+
+      <footer className="main-footer">
+        <a href="/" className="logo">
+          AFRI<span>SCENE</span>
+        </a>
+
+        <p>
+          African stories. Global experiences.
+        </p>
+
+        <p>© {new Date().getFullYear()} AFRISCENE</p>
+      </footer>
+
     </main>
   );
 }
