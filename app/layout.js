@@ -2,7 +2,7 @@
 import "./globals.css";
 
 export const metadata = {
-  metadataBase: new URL("https://www.rebamovies.com"),
+  metadataBase: new URL("https://top-movies-market.vercel.app"),
 
   title: {
     default: "AFRISCENE | African Movies & Cinema",
