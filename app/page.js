@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { createSupabaseBrowserClient } from "../lib/supabase/client";
 
 export default function HomePage() {
   const [movies, setMovies] = useState([]);
