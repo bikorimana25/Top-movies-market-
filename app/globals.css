@@ -318,3 +318,113 @@
     padding: 10px;
   }
 }
+/* AFRISCENE AUTHENTICATION PAGES */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: #090909;
+  color: #ffffff;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 32px 26px;
+  background: #171211;
+  border: 1px solid #50352d;
+  border-radius: 18px;
+  box-shadow: 0 15px 50px #0008;
+}
+
+.auth-card .logo {
+  display: inline-block;
+  margin-bottom: 25px;
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.auth-card .logo span {
+  color: #ff4f91;
+}
+
+.auth-card h1 {
+  margin-bottom: 8px;
+  font-size: 30px;
+}
+
+.auth-card > p {
+  color: #c9c1bf;
+  line-height: 1.6;
+}
+
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 25px 0;
+}
+
+.auth-card label {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 14px;
+  color: #ffffff;
+  background: #090909;
+  border: 1px solid #50352d;
+  border-radius: 9px;
+  outline: none;
+}
+
+.auth-card input:focus {
+  border-color: #ff4f91;
+}
+
+.auth-card form button {
+  padding: 15px;
+  margin-top: 10px;
+  color: #ffffff;
+  background: #ff4f91;
+  border: 0;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-card form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-card a:not(.logo) {
+  color: #ff79aa;
+}
+
+.auth-message {
+  padding: 12px;
+  color: #ffffff;
+  background: #38231f;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 25px 19px;
+  }
+
+  .auth-card h1 {
+    font-size: 25px;
+  }
+}
