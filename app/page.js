@@ -41,13 +41,13 @@ export default function HomePage() {
           language,
           poster_url,
           trailer_url,
-          video_path,
           price_rwf,
           access_type,
           download_enabled,
           status,
           rights_confirmed
         `)
+                .eq("status", "published")
         .eq("rights_confirmed", true)
         .order("created_at", { ascending: false });
 
